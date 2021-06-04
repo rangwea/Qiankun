@@ -7,5 +7,5 @@ package com.wikia.calabash.cluster.masterworks;
 public interface Master {
     void start();
 
-    void close();
+    void stop();
 }

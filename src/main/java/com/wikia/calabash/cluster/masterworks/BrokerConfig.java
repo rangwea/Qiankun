@@ -10,4 +10,5 @@ import lombok.Data;
 public class BrokerConfig {
     private String host;
     private Integer port;
+    private Boolean allowMasterDoWork;
 }

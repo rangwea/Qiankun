@@ -8,7 +8,6 @@ import lombok.Data;
  */
 @Data
 public class Node {
-    private String id;
     private String host;
     private int port;
 

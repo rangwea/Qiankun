@@ -3,8 +3,10 @@ package com.wikia.calabash.cluster.masterworks;
 import com.wikia.calabash.util.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.imps.CuratorFrameworkState;
-import org.apache.curator.framework.recipes.cache.CuratorCache;
+import org.apache.curator.framework.recipes.cache.ChildData;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
 import org.apache.curator.framework.state.ConnectionState;
@@ -12,7 +14,6 @@ import org.apache.curator.framework.state.ConnectionState;
 import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.stream.Collectors;
 
 /**
  * @author wikia
@@ -23,23 +24,24 @@ public class MasterSelector extends LeaderSelectorListenerAdapter implements Clo
     private final String name;
     private final LeaderSelector leaderSelector;
     private final CuratorFramework client;
-    private final CuratorCache workersCache;
+    private final PathChildrenCache workersCache;
     private final CountDownLatch closeLatch = new CountDownLatch(1);
     private final List<Master> masters;
-    private final List<WorkersChangeListener> workersListeners;
+    private final ClusterManager clusterManager;
 
-    public MasterSelector(CuratorFramework client, String name, List<Master> masters, List<WorkersChangeListener> workersListeners) {
+    public MasterSelector(CuratorFramework client, String name, List<Master> masters, ClusterManager clusterManager) {
         this.client = client;
         this.name = name;
         this.masters = masters;
-        this.workersListeners = workersListeners;
-        this.workersCache = CuratorCache.build(client, "/workers");
+        this.clusterManager = clusterManager;
+        this.workersCache = new PathChildrenCache(client, ZkPaths.WORKERS_PATH, true);
         this.leaderSelector = new LeaderSelector(client, ZkPaths.MASTER_PATH, this);
         leaderSelector.autoRequeue();
     }
 
     public void start() {
         leaderSelector.start();
+        log.info("Start Master Selector");
     }
 
     public boolean isLeader() {
@@ -49,13 +51,12 @@ public class MasterSelector extends LeaderSelectorListenerAdapter implements Clo
     @Override
     public void close() {
         try {
-            this.closeMasters();
+            this.stopMasters();
             closeLatch.countDown();
             leaderSelector.close();
             workersCache.close();
-            if (!client.getState().equals(CuratorFrameworkState.STOPPED)) {
-                client.close();
-            }
+            client.close();
+            log.info("Close Master Selector");
         } catch (Exception e) {
             log.warn("close fail", e);
         }
@@ -67,16 +68,18 @@ public class MasterSelector extends LeaderSelectorListenerAdapter implements Clo
         try {
             // 成为 Master, 缓存 workers
             workersCache.start();
-            this.addWorksChangeListeners();
+            // 监听 workers 变化
+            workersCache.getListenable().addListener(this.workersCacheListener);
 
+            // 启动所有 master 任务
             this.startMasters();
 
             /*
              * This latch is to prevent this call from exiting. If we exit, then we release mastership.
              */
             closeLatch.await();
-        } catch (InterruptedException e) {
-            log.warn("{} was interrupted.", name);
+        } catch (Exception e) {
+            log.warn("{} take leader ship fail.", name);
         } finally {
             log.info("{} relinquishing leadership.", name);
         }
@@ -103,36 +106,44 @@ public class MasterSelector extends LeaderSelectorListenerAdapter implements Clo
         }
     }
 
-    public List<Node> getWorkerInfos() {
-        return this.workersCache.stream()
-                .map(e -> JacksonUtils.readValue(e.getData(), Node.class))
-                .collect(Collectors.toList());
-    }
+    PathChildrenCacheListener workersCacheListener = new PathChildrenCacheListener() {
+        @Override
+        public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) {
+            ChildData data = event.getData();
+            PathChildrenCacheEvent.Type type = event.getType();
+            switch (type) {
+                case CHILD_ADDED:
+                    log.info("join a worker:{}", new String(data.getData()));
+                    clusterManager.addWorker(JacksonUtils.readValue(data.getData(), Node.class));
+                    break;
+                case CHILD_REMOVED:
+                    log.info("leave a worker:{}", new String(data.getData()));
+                    clusterManager.addWorker(JacksonUtils.readValue(data.getData(), Node.class));
+                    break;
+            }
+        }
+    };
 
     private void startMasters() {
-        for (Master masterListener : this.masters) {
-            masterListener.start();
+        while (clusterManager.getWorkers().isEmpty()) {
+            try {
+                log.info("Workers not ready, master waiting to start...");
+                Thread.sleep(200);
+            } catch (Exception e) {
+                log.error("thread exception", e);
+            }
+        }
+
+        log.info("Has ready workers, masters is starting...");
+        for (Master master : this.masters) {
+            master.start();
         }
     }
 
-    private void closeMasters() {
-        for (Master masterListener : this.masters) {
-            masterListener.close();
-        }
-    }
-
-    private void addWorksChangeListeners() {
-        for (WorkersChangeListener workersListener : workersListeners) {
-            this.workersCache.listenable()
-                    .addListener((type, oldData, newData) -> {
-                        switch (type) {
-                            case NODE_CREATED:
-                                workersListener.add(JacksonUtils.readValue(newData.getData(), Node.class));
-                                break;
-                            case NODE_DELETED:
-                                workersListener.delete(JacksonUtils.readValue(oldData.getData(), Node.class));
-                        }
-                    });
+    private void stopMasters() {
+        log.info("Starting stop all masters...");
+        for (Master master : this.masters) {
+            master.stop();
         }
     }
 }

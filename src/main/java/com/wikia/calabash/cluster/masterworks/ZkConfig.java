@@ -8,7 +8,7 @@ import lombok.Data;
  */
 @Data
 public class ZkConfig {
-    private String host;
+    private String connection;
     private Integer connectionTimeout;
     private Integer sessionTimeout;
     private String namespace;

@@ -1,7 +1,7 @@
 package com.wikia.calabash;
 
 /**
- * @author feijianwu
+ * @author wikia
  * @since 6/1/2021 11:11 AM
  */
 public class Defaults {

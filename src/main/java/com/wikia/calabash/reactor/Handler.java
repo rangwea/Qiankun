@@ -1,7 +1,7 @@
 package com.wikia.calabash.reactor;
 
 /**
- * @author feijianwu
+ * @author wikia
  * @since 5/20/2021 2:58 PM
  */
 public interface Handler<T> {
