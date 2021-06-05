@@ -7,8 +7,8 @@ import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-public class ConsistentHashRouter<T extends Node> {
-    private final SortedMap<Long, VirtualNode<T>> ring = new TreeMap<>();
+public class ConsistentHashRouter<T extends ConsistentNode> {
+    private final SortedMap<Long, VirtualConsistentNode<T>> ring = new TreeMap<>();
     private final HashFunction hashFunction;
 
     public ConsistentHashRouter(Collection<T> pNodes, int vNodeCount) {
@@ -42,7 +42,7 @@ public class ConsistentHashRouter<T extends Node> {
         if (vNodeCount < 0) throw new IllegalArgumentException("illegal virtual node counts :" + vNodeCount);
         int existingReplicas = getExistingReplicas(pNode);
         for (int i = 0; i < vNodeCount; i++) {
-            VirtualNode<T> vNode = new VirtualNode<>(pNode, i + existingReplicas);
+            VirtualConsistentNode<T> vNode = new VirtualConsistentNode<>(pNode, i + existingReplicas);
             ring.put(hashFunction.hash(vNode.getKey()), vNode);
         }
     }
@@ -55,7 +55,7 @@ public class ConsistentHashRouter<T extends Node> {
         Iterator<Long> it = ring.keySet().iterator();
         while (it.hasNext()) {
             Long key = it.next();
-            VirtualNode<T> virtualNode = ring.get(key);
+            VirtualConsistentNode<T> virtualNode = ring.get(key);
             if (virtualNode.isVirtualNodeOf(pNode)) {
                 it.remove();
             }
@@ -72,7 +72,7 @@ public class ConsistentHashRouter<T extends Node> {
             return null;
         }
         Long hashVal = hashFunction.hash(objectKey);
-        SortedMap<Long,VirtualNode<T>> tailMap = ring.tailMap(hashVal);
+        SortedMap<Long, VirtualConsistentNode<T>> tailMap = ring.tailMap(hashVal);
         Long nodeHashVal = !tailMap.isEmpty() ? tailMap.firstKey() : ring.firstKey();
         return ring.get(nodeHashVal).getPhysicalNode();
     }
@@ -80,7 +80,7 @@ public class ConsistentHashRouter<T extends Node> {
 
     public int getExistingReplicas(T pNode) {
         int replicas = 0;
-        for (VirtualNode<T> vNode : ring.values()) {
+        for (VirtualConsistentNode<T> vNode : ring.values()) {
             if (vNode.isVirtualNodeOf(pNode)) {
                 replicas++;
             }
@@ -88,7 +88,7 @@ public class ConsistentHashRouter<T extends Node> {
         return replicas;
     }
 
-    
+
     //default hash function
     private static class MD5Hash implements HashFunction {
         MessageDigest instance;

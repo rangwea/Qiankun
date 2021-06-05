@@ -1,10 +1,10 @@
 package com.wikia.calabash.consistenthash;
 
-public class VirtualNode<T extends Node> implements Node {
+public class VirtualConsistentNode<T extends ConsistentNode> implements ConsistentNode {
     final T physicalNode;
     final int replicaIndex;
 
-    public VirtualNode(T physicalNode, int replicaIndex) {
+    public VirtualConsistentNode(T physicalNode, int replicaIndex) {
         this.replicaIndex = replicaIndex;
         this.physicalNode = physicalNode;
     }

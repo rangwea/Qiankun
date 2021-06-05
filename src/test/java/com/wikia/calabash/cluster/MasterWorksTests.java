@@ -2,6 +2,7 @@ package com.wikia.calabash.cluster;
 
 import com.wikia.calabash.cluster.masterworks.Broker;
 import com.wikia.calabash.cluster.masterworks.BrokerConfig;
+import com.wikia.calabash.cluster.masterworks.ClusterManager;
 import com.wikia.calabash.cluster.masterworks.Master;
 import com.wikia.calabash.cluster.masterworks.ZkConfig;
 import com.wikia.calabash.reactor.EventLoop;
@@ -24,14 +25,16 @@ public class MasterWorksTests {
         brokerConfig.setPort(8091);
 
         ZkConfig zkConfig = new ZkConfig();
-        zkConfig.setHost("127.0.0.1:2181");
+        zkConfig.setConnection("127.0.0.1:2181");
         zkConfig.setNamespace("foo");
 
         List<Master> masters = new ArrayList<>();
         PingEventLoop pingEventLoop = new PingEventLoop(brokerConfig);
         PingMaster pingMaster = new PingMaster(pingEventLoop);
         masters.add(pingMaster);
-        Broker broker = new Broker(brokerConfig, zkConfig, masters);
+
+        ClusterManager clusterManager = new ClusterManager();
+        Broker broker = new Broker(brokerConfig, zkConfig, masters, clusterManager);
         broker.start();
 
         System.in.read();
@@ -51,8 +54,13 @@ public class MasterWorksTests {
         }
 
         @Override
-        public void close() {
-            pingEventLoop.stop();
+        public void stop() {
+
+        }
+
+        @Override
+        public boolean isStart() {
+            return false;
         }
     }
 

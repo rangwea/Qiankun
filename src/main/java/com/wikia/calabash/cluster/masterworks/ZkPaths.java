@@ -13,4 +13,6 @@ public class ZkPaths {
 
     public static final String MASTER_PATH = "/master";
 
+    public static final String TASK_ASSIGN = "/assign";
+
 }

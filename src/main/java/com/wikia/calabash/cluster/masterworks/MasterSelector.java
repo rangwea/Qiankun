@@ -121,6 +121,13 @@ public class MasterSelector extends LeaderSelectorListenerAdapter implements Clo
                     clusterManager.addWorker(JacksonUtils.readValue(data.getData(), Node.class));
                     break;
             }
+
+            // 通知所有 Master 实例
+            masters.forEach(master -> {
+                if (master.isStart()) {
+                    master.workersChange(event);
+                }
+            });
         }
     };
 

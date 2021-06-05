@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * @author wufj(feijian_wu @ kingdee.com)
+ * @author wufj(wikia_wu @ kingdee.com)
  * @since 2/3/2021 4:43 PM
  */
 public class JdbcCrudGenerator {
