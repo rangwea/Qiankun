@@ -1,7 +1,7 @@
 package com.wikia.calabash.cluster.masterworks;
 
 import com.google.common.base.Preconditions;
-import com.wikia.calabash.Defaults;
+import com.wikia.calabash.clean.Defaults;
 import com.wikia.calabash.util.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;

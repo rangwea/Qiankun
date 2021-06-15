@@ -9,7 +9,6 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.zookeeper.CreateMode;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,14 +36,13 @@ public abstract class BaseTaskAssignMaster implements Master {
 
     @Override
     public void start() {
-        this.assignChildrenCache = new PathChildrenCache(curator, ZkPaths.TASK_ASSIGN, true);
-
-        Set<Node> workers = clusterManager.getWorkers();
-        this.consistentHashRouter = new ConsistentHashRouter<>(new ArrayList<>(workers), consistentHashVirtualNodeNum);
-
-        this.nodeByTaskKey = new HashMap<>();
-
         try {
+            this.assignChildrenCache = new PathChildrenCache(curator, ZkPaths.TASK_ASSIGN, true);
+
+            this.initNodeByTaskKey();
+
+            Set<Node> workers = clusterManager.getWorkers();
+            this.consistentHashRouter = new ConsistentHashRouter<>(new ArrayList<>(workers), consistentHashVirtualNodeNum);
             this.shuffle();
         } catch (Exception e) {
             log.error("master start fail:{}", this.getClass());
@@ -81,6 +79,18 @@ public abstract class BaseTaskAssignMaster implements Master {
             }
         } catch (Exception e) {
             log.info("workers change process fail:event={}", event, e);
+        }
+    }
+
+    private void initNodeByTaskKey() throws Exception {
+        List<String> assignWorkers = curator.getChildren().forPath(ZkPaths.TASK_ASSIGN);
+        for (String assignWorker : assignWorkers) {
+            List<String> assignWorkTasks = curator.getChildren().forPath(ZkPaths.TASK_ASSIGN + assignWorker);
+            for (String assignWorkTask : assignWorkTasks) {
+                byte[] bytes = curator.getData().forPath(ZkPaths.TASK_ASSIGN + assignWorker + assignWorkTask);
+                Node node = JacksonUtils.readValue(bytes, Node.class);
+                nodeByTaskKey.put(assignWorkTask, node);
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-package com.wikia.calabash;
+package com.wikia.calabash.clean;
 
 /**
  * @author wikia

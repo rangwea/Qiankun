@@ -1,12 +1,13 @@
 package com.wikia.calabash.datasource;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,10 +21,16 @@ import javax.sql.DataSource;
         , sqlSessionTemplateRef = "xxxSqlSessionTemplate")
 public class DataSourceXXXConfig {
 
+    @Bean
+    @ConfigurationProperties(prefix = "spring.datasource.datasource")
+    public HikariConfig xxxConfig() {
+        return new HikariConfig();
+    }
+
     @Bean(name = "xxxDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.xxx")
-    public DataSource xxxDataSource() {
-        return DataSourceBuilder.create().build();
+    public DataSource xxxDataSource(HikariConfig xxxConfig) {
+        return new HikariDataSource(xxxConfig);
     }
 
     @Bean("xxxSqlSessionFactory")
