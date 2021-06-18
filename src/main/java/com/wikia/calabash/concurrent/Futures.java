@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * @author feijianwu
+ * @author wikia
  * @since 6/14/2021 7:45 PM
  */
 public class Futures {
