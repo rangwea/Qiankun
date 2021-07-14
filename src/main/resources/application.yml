@@ -4,3 +4,9 @@ server:
 spring:
   redis:
     host: 127.0.0.1
+  application:
+    name: calcabash
+
+logging:
+  file:
+    path: /data/applogs/${spring.application.name}
