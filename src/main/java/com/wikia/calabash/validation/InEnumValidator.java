@@ -8,25 +8,30 @@ import java.util.Set;
 
 
 public class InEnumValidator implements ConstraintValidator<InEnum, Object> {
-    private Set<String> allows;
+    private Set<Object> allows;
 
     @SuppressWarnings("unchecked")
     @Override
     public void initialize(InEnum constraintAnnotation) {
         try {
-            Class<Enum> value = (Class<Enum>) constraintAnnotation.value();
-            Enum[] enumConstants = value.getEnumConstants();
+            Class<Enum<?>> value = (Class<Enum<?>>) constraintAnnotation.value();
+            Enum<?>[] enumConstants = value.getEnumConstants();
 
             String fieldName = constraintAnnotation.field();
             allows = new HashSet<>();
-            for (Enum enumConstant : enumConstants) {
+            for (Enum<?> enumConstant : enumConstants) {
                 if (fieldName.isEmpty()) {
                     allows.add(enumConstant.name());
                 } else {
-                    Field field = value.getDeclaredField(fieldName);
+                    Field field;
+                    try {
+                        field = value.getDeclaredField(fieldName);
+                    } catch (NoSuchFieldException ne) {
+                        throw new RuntimeException(String.format("[%s] enum no [%s] field", enumConstant.getClass().getName(), fieldName));
+                    }
                     field.setAccessible(true);
                     Object o = field.get(enumConstant);
-                    allows.add(o.toString());
+                    allows.add(o);
                 }
             }
         } catch (Exception e) {
@@ -36,13 +41,10 @@ public class InEnumValidator implements ConstraintValidator<InEnum, Object> {
 
     @Override
     public boolean isValid(Object value, ConstraintValidatorContext context) {
-        if (allows == null) {
+        if (allows == null || value == null) {
             return false;
         }
-        if (value == null || value.toString().isEmpty()) {
-            return false;
-        }
-        return allows.contains(value.toString());
+        return allows.contains(value);
     }
 
 }

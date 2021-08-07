@@ -36,7 +36,7 @@ public class DDL2Model {
                 String[] split = line.split(" ");
                 tableName = split[2].substring(1, split[2].length() -1);
                 // 去掉
-                className = tableName.substring(1);
+                className = tableName.substring(0);
                 className = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, className);
                 String classLine = String.format("@Setter\n@Getter\n@TableName(\"%s\") \npublic class %s {", tableName, className);
                 classContent = basePackage + importPackageName + classLine + "\n";
@@ -46,7 +46,7 @@ public class DDL2Model {
             if (isColumnLine(line)) {
                 String[] c = line.split(" ");
                 String columnName = c[0].substring(1, c[0].length()-1);
-                String fieldName = columnName.substring(1);
+                String fieldName = columnName.substring(0);
                 fieldName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, fieldName);
                 String type = typeConvert(c[1]);
                 String fieldLine = String.format("    @TableField(\"%s\") \n    private %s %s; \n", columnName, type, fieldName);

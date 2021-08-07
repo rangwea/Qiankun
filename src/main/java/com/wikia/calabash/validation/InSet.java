@@ -14,16 +14,14 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 @Target( { METHOD, FIELD, ANNOTATION_TYPE })
 @Retention(RUNTIME)
-@Constraint(validatedBy = InEnumValidator.class)
+@Constraint(validatedBy = InSetValidator.class)
 @Documented
-public @interface InEnum {
+public @interface InSet {
     String message() default "枚举值不正确";
 
     Class<?>[] groups() default {};
 
     Class<? extends Payload>[] payload() default {};
 
-    Class<?> value();
-
-    String field() default "";
+    String[] value() default {};
 }
