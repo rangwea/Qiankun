@@ -108,6 +108,8 @@ public class DiskRetryManager<T> {
                     log.info("disk retry process record:record={}", record);
                 } catch (InterruptedException e) {
                     log.warn("InterruptedException", e);
+                } catch (Exception e) {
+                    log.warn("while fail", e);
                 }
             }
         }).start();
